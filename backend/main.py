@@ -1,6 +1,7 @@
 import os
 import re
 import sqlite3
+from contextlib import contextmanager
 from pathlib import Path
 
 import httpx
@@ -27,10 +28,16 @@ app.add_middleware(
 )
 
 
+@contextmanager
 def get_db():
+    # sqlite3's `with conn` only manages transactions, never closes — this does
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
-    return conn
+    try:
+        yield conn
+        conn.commit()
+    finally:
+        conn.close()
 
 
 with get_db() as conn:
@@ -59,7 +66,10 @@ async def news(q: str):
             params={"q": q, "language": "en", "sortBy": "publishedAt", "pageSize": 10},
             headers={"X-Api-Key": NEWSAPI_KEY},
         )
-    data = res.json()
+    try:
+        data = res.json()
+    except ValueError:
+        raise HTTPException(502, "NewsAPI returned an invalid response")
     if data.get("status") != "ok":
         raise HTTPException(502, data.get("message", "NewsAPI error"))
 

@@ -77,7 +77,7 @@ export default function Home() {
     runSearch(q);
   }
 
-  async function summarize(url, title, source) {
+  async function summarize(url, title, source, description) {
     setBusy(url);
     setStatus(title ? `Summarizing "${title}"...` : "Summarizing...");
     setSummary(null);
@@ -85,7 +85,7 @@ export default function Home() {
       const res = await fetch(`${BACKEND}/api/summarize`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url, title, source }),
+        body: JSON.stringify({ url, title, source, description }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.detail || "Summarize failed");
@@ -277,7 +277,7 @@ export default function Home() {
                 {a.description && <p>{a.description}</p>}
               </div>
               <button
-                onClick={() => summarize(a.url, a.title, a.source)}
+                onClick={() => summarize(a.url, a.title, a.source, a.description)}
                 disabled={busy !== ""}
               >
                 {busy === a.url ? "Summarizing..." : "Summarize"}
